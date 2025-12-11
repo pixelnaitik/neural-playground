@@ -1,0 +1,443 @@
+{% extends 'base.html' %}
+
+{% block title %}Vision Playground - NeuralPlayground{% endblock %}
+
+{% block content %}
+<div class="tool-page container">
+    <div class="tool-header">
+        <div class="tool-icon">👁️</div>
+        <h1 class="tool-title">Vision Playground</h1>
+        <p class="tool-description">
+            Detect faces and hands in photos using computer vision.
+            Upload an image or use live camera mode for real-time detection.
+        </p>
+    </div>
+
+    <div class="tool-content">
+        <!-- Input Section -->
+        <div class="tool-input-section" id="input-section">
+            <div class="section-label">📷 Choose Input Method</div>
+
+            <form id="vision-form">
+                <!-- Input Method Toggle -->
+                <div class="form-group">
+                    <div class="toggle-group" id="input-toggle">
+                        <button type="button" class="toggle-option active" data-value="live">🔴 Live Mode</button>
+                        <button type="button" class="toggle-option" data-value="upload">📁 Upload File</button>
+                    </div>
+                </div>
+
+                <!-- File Upload Section -->
+                <div class="form-group hidden" id="upload-section">
+                    <div class="file-upload" id="file-upload">
+                        <input type="file" class="file-upload-input" id="image-input"
+                            accept=".png,.jpg,.jpeg,.gif,.webp">
+                        <div class="file-upload-icon">📁</div>
+                        <div class="file-upload-text">
+                            <strong>Click to upload</strong> or drag and drop<br>
+                            PNG, JPG, GIF up to 10MB
+                        </div>
+                    </div>
+                    <div id="file-name" class="form-hint mt-4" style="display: none;"></div>
+                </div>
+
+
+                <!-- Live Mode Section -->
+                <div class="form-group" id="live-section">
+                    <div class="result-box" style="text-align: center; position: relative;">
+                        <video id="live-video" autoplay playsinline
+                            style="width: 100%; max-height: 400px; border-radius: var(--radius-md); background: var(--color-gray-900);"></video>
+                        <canvas id="live-canvas" style="display: none;"></canvas>
+                        <canvas id="overlay-canvas"
+                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
+                    </div>
+                    <div class="mt-4" style="text-align: center;">
+                        <button type="button" class="btn btn-primary" id="start-live-btn" disabled>
+                            ▶️ Start Live Detection
+                        </button>
+                        <button type="button" class="btn btn-danger hidden" id="stop-live-btn">
+                            ⏹️ Stop
+                        </button>
+                    </div>
+                    <div id="live-status" class="form-hint mt-4" style="text-align: center;"></div>
+                    <div id="live-fps" class="form-hint" style="text-align: center; color: var(--color-success);"></div>
+                </div>
+
+                <div id="image-preview" class="result-box hidden mb-4">
+                    <img id="preview-img" src="" alt="Preview"
+                        style="max-height: 200px; margin: 0 auto; border-radius: var(--radius-md);">
+                </div>
+
+                <div id="static-buttons" class="hidden">
+                    <button type="submit" class="btn btn-primary btn-lg btn-full" id="detect-btn" disabled>
+                        👁️ Detect Faces & Hands
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Output Section -->
+        <div class="tool-output-section" id="output-section">
+            <div class="section-label">🎯 Detection Results</div>
+
+            <div id="output-placeholder" class="result-box text-center"
+                style="color: var(--color-gray-400); padding: var(--space-10);">
+                <div style="font-size: 3rem; margin-bottom: var(--space-3);">🔍</div>
+                <p>Detection results will appear here</p>
+            </div>
+
+            <!-- Live Detection Display -->
+            <div id="live-detection-display" class="hidden">
+                <div class="result-box mb-4" style="text-align: center;">
+                    <div style="display: flex; justify-content: center; gap: var(--space-8);">
+                        <div>
+                            <div id="live-face-count" style="font-size: 2.5rem; color: var(--color-primary);">0</div>
+                            <div style="font-size: var(--font-size-sm); color: var(--color-gray-400);">👤 Faces</div>
+                        </div>
+                        <div>
+                            <div id="live-hand-count" style="font-size: 2.5rem; color: var(--color-success);">0</div>
+                            <div style="font-size: var(--font-size-sm); color: var(--color-gray-400);">✋ Hands</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="output-results" class="hidden">
+                <div class="flex justify-between items-center mb-4 gap-4">
+                    <span id="face-count" class="badge badge-primary"></span>
+                    <span id="hand-count" class="badge badge-success"></span>
+                </div>
+
+                <div class="image-comparison">
+                    <div class="image-display">
+                        <div class="result-label mb-2">Original</div>
+                        <img id="original-image" src="" alt="Original image">
+                    </div>
+                    <div class="image-display">
+                        <div class="result-label mb-2">Detected</div>
+                        <img id="processed-image" src="" alt="Processed image with detections">
+                    </div>
+                </div>
+
+                <div class="alert alert-info mt-6">
+                    <span class="alert-icon">ℹ️</span>
+                    <span>
+                        <strong>How it works:</strong> Face detection uses Haar Cascades,
+                        while hand detection uses MediaPipe. Both are detected simultaneously.
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('vision-form');
+        const fileUpload = document.getElementById('file-upload');
+        const imageInput = document.getElementById('image-input');
+        const fileName = document.getElementById('file-name');
+        const imagePreview = document.getElementById('image-preview');
+        const previewImg = document.getElementById('preview-img');
+        const detectBtn = document.getElementById('detect-btn');
+        const staticButtons = document.getElementById('static-buttons');
+        const outputPlaceholder = document.getElementById('output-placeholder');
+        const outputResults = document.getElementById('output-results');
+        const outputSection = document.getElementById('output-section');
+
+        // Toggle elements
+        const inputToggle = document.getElementById('input-toggle');
+        const uploadSection = document.getElementById('upload-section');
+
+        // Live mode elements
+        const liveSection = document.getElementById('live-section');
+        const liveVideo = document.getElementById('live-video');
+        const liveCanvas = document.getElementById('live-canvas');
+        const overlayCanvas = document.getElementById('overlay-canvas');
+        const startLiveBtn = document.getElementById('start-live-btn');
+        const stopLiveBtn = document.getElementById('stop-live-btn');
+        const liveStatus = document.getElementById('live-status');
+        const liveFps = document.getElementById('live-fps');
+        const liveDetectionDisplay = document.getElementById('live-detection-display');
+        const liveFaceCount = document.getElementById('live-face-count');
+        const liveHandCount = document.getElementById('live-hand-count');
+
+        let selectedFile = null;
+        let currentStream = null;
+        let inputMode = 'live';
+        let liveProcessing = false;
+        let frameCount = 0;
+        let lastFpsUpdate = Date.now();
+
+        // Auto-start camera since live mode is default
+        setTimeout(() => {
+            startCamera(liveVideo, liveStatus, startLiveBtn);
+        }, 500);
+
+        // Input method toggle
+        inputToggle.querySelectorAll('.toggle-option').forEach(option => {
+            option.addEventListener('click', function () {
+                inputToggle.querySelectorAll('.toggle-option').forEach(o => o.classList.remove('active'));
+                this.classList.add('active');
+                inputMode = this.dataset.value;
+
+                // Hide all sections first
+                uploadSection.classList.add('hidden');
+                liveSection.classList.add('hidden');
+                imagePreview.classList.add('hidden');
+                staticButtons.classList.remove('hidden');
+                outputResults.classList.add('hidden');
+                liveDetectionDisplay.classList.add('hidden');
+                outputPlaceholder.classList.remove('hidden');
+
+                // Stop any ongoing processes
+                stopCamera();
+                stopLiveProcessing();
+
+                if (inputMode === 'upload') {
+                    uploadSection.classList.remove('hidden');
+                } else if (inputMode === 'live') {
+                    liveSection.classList.remove('hidden');
+                    staticButtons.classList.add('hidden');
+                    startCamera(liveVideo, liveStatus, startLiveBtn);
+                }
+
+                // Reset state
+                selectedFile = null;
+                detectBtn.disabled = true;
+            });
+        });
+
+        // Camera functions
+        async function startCamera(videoElement, statusElement, buttonElement) {
+            statusElement.textContent = 'Starting camera...';
+            buttonElement.disabled = true;
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+                });
+                currentStream = stream;
+                videoElement.srcObject = stream;
+                statusElement.textContent = 'Camera ready!';
+                buttonElement.disabled = false;
+            } catch (error) {
+                console.error('Camera error:', error);
+                statusElement.textContent = '❌ Could not access camera. Please check permissions.';
+                buttonElement.disabled = true;
+            }
+        }
+
+        function stopCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+            liveVideo.srcObject = null;
+            liveStatus.textContent = '';
+        }
+
+        // Live mode functions
+        startLiveBtn.addEventListener('click', function () {
+            if (!currentStream) return;
+            startLiveProcessing();
+        });
+
+        stopLiveBtn.addEventListener('click', function () {
+            stopLiveProcessing();
+        });
+
+        function startLiveProcessing() {
+            liveProcessing = true;
+            startLiveBtn.classList.add('hidden');
+            stopLiveBtn.classList.remove('hidden');
+            liveStatus.textContent = '🔴 Live processing - detecting faces & hands...';
+            outputPlaceholder.classList.add('hidden');
+            liveDetectionDisplay.classList.remove('hidden');
+            frameCount = 0;
+            lastFpsUpdate = Date.now();
+            processLiveFrame();
+        }
+
+        function stopLiveProcessing() {
+            liveProcessing = false;
+            startLiveBtn.classList.remove('hidden');
+            stopLiveBtn.classList.add('hidden');
+            // Clear overlay canvas
+            const overlay = document.getElementById('overlay-canvas');
+            if (overlay) {
+                const ctx = overlay.getContext('2d');
+                ctx.clearRect(0, 0, overlay.width, overlay.height);
+            }
+            liveStatus.textContent = 'Live processing stopped.';
+            liveFps.textContent = '';
+        }
+
+        async function processLiveFrame() {
+            if (!liveProcessing || !currentStream) return;
+
+            try {
+                // Capture frame at higher resolution for accuracy
+                const targetWidth = 640;
+                const scale = targetWidth / liveVideo.videoWidth;
+                liveCanvas.width = targetWidth;
+                liveCanvas.height = liveVideo.videoHeight * scale;
+                const ctx = liveCanvas.getContext('2d');
+                ctx.drawImage(liveVideo, 0, 0, liveCanvas.width, liveCanvas.height);
+
+                const frameData = liveCanvas.toDataURL('image/jpeg', 0.7);
+
+                // Send to API
+                const response = await fetch('/api/vision/live/all', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ frame: frameData })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Draw boxes on overlay canvas (client-side = fast!)
+                    const overlay = document.getElementById('overlay-canvas');
+                    const video = liveVideo;
+
+                    // Match overlay to video size
+                    const rect = video.getBoundingClientRect();
+                    overlay.width = rect.width;
+                    overlay.height = rect.height;
+
+                    const octx = overlay.getContext('2d');
+                    octx.clearRect(0, 0, overlay.width, overlay.height);
+
+                    // Scale factor from capture to display
+                    const scaleX = rect.width / targetWidth;
+                    const scaleY = rect.height / liveCanvas.height;
+
+                    // Draw face boxes
+                    if (result.faces) {
+                        octx.strokeStyle = '#FF6432';
+                        octx.lineWidth = 3;
+                        octx.font = '16px Arial';
+                        octx.fillStyle = '#FF6432';
+
+                        for (const face of result.faces) {
+                            const x = face.x * scaleX;
+                            const y = face.y * scaleY;
+                            const w = face.w * scaleX;
+                            const h = face.h * scaleY;
+                            octx.strokeRect(x, y, w, h);
+                            octx.fillText('Face', x, y - 5);
+                        }
+                    }
+
+                    // Draw hand boxes
+                    if (result.hands) {
+                        octx.strokeStyle = '#32FF64';
+                        octx.lineWidth = 3;
+                        octx.fillStyle = '#32FF64';
+
+                        for (const hand of result.hands) {
+                            const x = hand.x * scaleX;
+                            const y = hand.y * scaleY;
+                            const w = hand.w * scaleX;
+                            const h = hand.h * scaleY;
+                            octx.strokeRect(x, y, w, h);
+                            octx.fillText(hand.type || 'Hand', x, y - 5);
+                        }
+                    }
+
+                    // Update counts
+                    liveFaceCount.textContent = result.faces_detected || 0;
+                    liveHandCount.textContent = result.hands_detected >= 0 ? result.hands_detected : 0;
+
+                    // FPS counter
+                    frameCount++;
+                    const now = Date.now();
+                    if (now - lastFpsUpdate >= 1000) {
+                        liveFps.textContent = `${frameCount} FPS`;
+                        frameCount = 0;
+                        lastFpsUpdate = now;
+                    }
+                }
+            } catch (error) {
+                console.error('Live processing error:', error);
+            }
+
+            // Continue processing - use requestAnimationFrame for smoothness
+            if (liveProcessing) {
+                requestAnimationFrame(processLiveFrame);
+            }
+        }
+
+        // File upload handling
+        function handleFileSelect(file) {
+            try {
+                validateFileType(file, ['png', 'jpg', 'jpeg', 'gif', 'webp']);
+                validateFileSize(file, 10);
+
+                selectedFile = file;
+                fileName.textContent = `Selected: ${file.name}`;
+                fileName.style.display = 'block';
+                detectBtn.disabled = false;
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    previewImg.src = e.target.result;
+                    imagePreview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+
+            } catch (error) {
+                showError(document.getElementById('input-section'), error.message);
+            }
+        }
+
+        setupFileUpload(fileUpload, handleFileSelect);
+
+        // Form submission - detect both faces and hands
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            if (!selectedFile) {
+                showError(outputSection, 'Please select an image first.');
+                return;
+            }
+
+            hideError(outputSection);
+            showLoading(outputSection, 'Detecting faces and hands...');
+
+            try {
+                const formData = new FormData();
+                formData.append('image', selectedFile);
+
+                // Call both endpoints
+                const [faceResult, handResult] = await Promise.all([
+                    postFormData('/api/vision/faces', formData),
+                    postFormData('/api/vision/hands', new FormData(form).set('image', selectedFile) ? formData : formData)
+                ]);
+
+                outputPlaceholder.classList.add('hidden');
+                outputResults.classList.remove('hidden');
+
+                document.getElementById('face-count').textContent = `👤 ${faceResult.faces_detected} face(s)`;
+                document.getElementById('hand-count').textContent = `✋ ${handResult.hands_detected >= 0 ? handResult.hands_detected : '?'} hand(s)`;
+                document.getElementById('original-image').src = faceResult.original_image;
+                document.getElementById('processed-image').src = handResult.processed_image; // Shows both since hand detection runs on face output
+
+            } catch (error) {
+                showError(outputSection, error.message);
+            } finally {
+                hideLoading(outputSection);
+            }
+        });
+
+        // Cleanup on page leave
+        window.addEventListener('beforeunload', () => {
+            stopCamera();
+            stopLiveProcessing();
+        });
+    });
+</script>
+{% endblock %}

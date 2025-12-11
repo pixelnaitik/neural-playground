@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+
+{% block title %}Fake Data Lab - NeuralPlayground{% endblock %}
+
+{% block content %}
+<div class="tool-page container">
+    <div class="tool-header">
+        <div class="tool-icon">🎲</div>
+        <h1 class="tool-title">Fake Data Lab</h1>
+        <p class="tool-description">
+            Generate realistic fake data for testing and development.
+            Create names, emails, addresses, and more in seconds.
+        </p>
+    </div>
+
+    <div class="tool-content">
+        <!-- Input Section -->
+        <div class="tool-input-section" id="input-section">
+            <div class="section-label">⚙️ Configuration</div>
+
+            <form id="fake-data-form">
+                <div class="form-group">
+                    <label class="form-label">
+                        Dataset Type
+                        <span class="tooltip-trigger"
+                            data-tooltip="Choose a preset or create your own custom data shape">?</span>
+                    </label>
+                    <select class="form-select" id="schema-type" name="schema_type">
+                        {% for key, schema in schemas.items() %}
+                        <option value="{{ key }}">{{ schema.name }}</option>
+                        {% endfor %}
+                        <option value="custom">Custom Schema</option>
+                    </select>
+                </div>
+
+                <!-- Custom Fields Section -->
+                <div class="form-group hidden" id="custom-fields-section">
+                    <label class="form-label">Custom Fields</label>
+                    <div id="custom-fields-list"></div>
+                    <button type="button" class="btn btn-secondary btn-sm mt-4" id="add-field-btn">
+                        + Add Field
+                    </button>
+
+                    <!-- Field Type Selector Template -->
+                    <select class="hidden" id="field-type-template">
+                        {% for key, label in field_types.items() %}
+                        <option value="{{ key }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        Language/Locale
+                        <span class="tooltip-trigger"
+                            data-tooltip="Generate data in different languages and regional formats">?</span>
+                    </label>
+                    <select class="form-select" id="locale" name="locale">
+                        {% for key, label in locales.items() %}
+                        <option value="{{ key }}" {% if key=='en_US' %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        Number of Rows: <strong id="row-count-display">10</strong>
+                    </label>
+                    <input type="range" class="form-range" id="row-count" name="row_count" min="5" max="100" value="10"
+                        step="5">
+                    <div class="form-hint">Generate between 5 and 100 rows (more available via API)</div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg btn-full">
+                    🎲 Generate Data
+                </button>
+            </form>
+        </div>
+
+        <!-- Output Section -->
+        <div class="tool-output-section" id="output-section">
+            <div class="section-label">📊 Generated Data</div>
+
+            <div id="output-placeholder" class="result-box text-center"
+                style="color: var(--color-gray-400); padding: var(--space-10);">
+                <div style="font-size: 3rem; margin-bottom: var(--space-3);">📋</div>
+                <p>Your generated data will appear here</p>
+            </div>
+
+            <div id="output-results" class="hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <span id="result-count" class="badge badge-success"></span>
+                    <button type="button" class="btn btn-success btn-sm" id="download-btn">
+                        ⬇️ Download CSV
+                    </button>
+                </div>
+                <div id="data-table-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('fake-data-form');
+        const schemaSelect = document.getElementById('schema-type');
+        const customFieldsSection = document.getElementById('custom-fields-section');
+        const customFieldsList = document.getElementById('custom-fields-list');
+        const addFieldBtn = document.getElementById('add-field-btn');
+        const rowCountSlider = document.getElementById('row-count');
+        const rowCountDisplay = document.getElementById('row-count-display');
+        const outputPlaceholder = document.getElementById('output-placeholder');
+        const outputResults = document.getElementById('output-results');
+        const downloadBtn = document.getElementById('download-btn');
+        const outputSection = document.getElementById('output-section');
+
+        let generatedData = null;
+
+        // Update row count display
+        rowCountSlider.addEventListener('input', function () {
+            rowCountDisplay.textContent = this.value;
+        });
+
+        // Show/hide custom fields
+        schemaSelect.addEventListener('change', function () {
+            if (this.value === 'custom') {
+                customFieldsSection.classList.remove('hidden');
+                if (customFieldsList.children.length === 0) {
+                    addCustomField();
+                }
+            } else {
+                customFieldsSection.classList.add('hidden');
+            }
+        });
+
+        // Add custom field
+        function addCustomField() {
+            const template = document.getElementById('field-type-template');
+            const fieldDiv = document.createElement('div');
+            fieldDiv.className = 'flex gap-2 items-center mb-2';
+            fieldDiv.innerHTML = `
+            <select class="form-select field-type-select" style="flex: 1;">
+                ${template.innerHTML}
+            </select>
+            <button type="button" class="btn btn-secondary btn-sm remove-field-btn">✕</button>
+        `;
+            customFieldsList.appendChild(fieldDiv);
+
+            // Remove button handler
+            fieldDiv.querySelector('.remove-field-btn').addEventListener('click', function () {
+                fieldDiv.remove();
+            });
+        }
+
+        addFieldBtn.addEventListener('click', addCustomField);
+
+        // Form submission
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            hideError(outputSection);
+            showLoading(outputSection, 'Generating data...');
+
+            try {
+                const data = {
+                    schema_type: schemaSelect.value,
+                    row_count: parseInt(rowCountSlider.value),
+                    locale: document.getElementById('locale').value
+                };
+
+                if (data.schema_type === 'custom') {
+                    const fieldSelects = customFieldsList.querySelectorAll('.field-type-select');
+                    data.custom_fields = Array.from(fieldSelects).map(s => s.value);
+
+                    if (data.custom_fields.length === 0) {
+                        throw new Error('Please add at least one field for custom schema');
+                    }
+                }
+
+                const result = await postJSON('/api/fake-data', data);
+
+                generatedData = result;
+
+                // Show results
+                outputPlaceholder.classList.add('hidden');
+                outputResults.classList.remove('hidden');
+
+                document.getElementById('result-count').textContent = `${result.count} rows generated`;
+
+                createDataTable(result.fields, result.field_labels, result.rows, 'data-table-container');
+
+            } catch (error) {
+                showError(outputSection, error.message);
+            } finally {
+                hideLoading(outputSection);
+            }
+        });
+
+        // Download CSV
+        downloadBtn.addEventListener('click', async function () {
+            if (!generatedData) return;
+
+            try {
+                const response = await fetch('/api/fake-data/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fields: generatedData.fields,
+                        rows: generatedData.rows
+                    })
+                });
+
+                if (!response.ok) throw new Error('Download failed');
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'fake_data.csv';
+                a.click();
+                URL.revokeObjectURL(url);
+
+            } catch (error) {
+                showError(outputSection, error.message);
+            }
+        });
+    });
+</script>
+{% endblock %}

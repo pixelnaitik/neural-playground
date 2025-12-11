@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Voice Studio - NeuralPlayground{% endblock %}
+
+{% block content %}
+<div class="tool-page container">
+    <div class="tool-header">
+        <div class="tool-icon">🔊</div>
+        <h1 class="tool-title">Voice Studio</h1>
+        <p class="tool-description">
+            Turn your text into natural-sounding speech.
+            Choose from multiple languages and accents.
+        </p>
+    </div>
+
+    <div class="tool-content">
+        <!-- Input Section -->
+        <div class="tool-input-section" id="input-section">
+            <div class="section-label">✍️ Enter Your Text</div>
+
+            <form id="tts-form">
+                <div class="form-group">
+                    <label class="form-label">Text to speak</label>
+                    <textarea class="form-textarea" id="text-input" name="text"
+                        placeholder="Type or paste your text here..." maxlength="1000" rows="6"></textarea>
+                    <div class="form-hint">
+                        <span id="char-count">0</span> / 1000 characters
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        Language / Accent
+                        <span class="tooltip-trigger"
+                            data-tooltip="Choose the voice language and regional accent">?</span>
+                    </label>
+                    <select class="form-select" id="language" name="language">
+                        {% for key, label in languages.items() %}
+                        <option value="{{ key }}" {% if key=='en' %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Speed</label>
+                    <div class="toggle-group">
+                        <button type="button" class="toggle-option active" data-value="false">Normal</button>
+                        <button type="button" class="toggle-option" data-value="true">Slow</button>
+                    </div>
+                    <input type="hidden" id="slow" name="slow" value="false">
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg btn-full">
+                    🎙️ Generate Audio
+                </button>
+            </form>
+        </div>
+
+        <!-- Output Section -->
+        <div class="tool-output-section" id="output-section">
+            <div class="section-label">🎧 Generated Audio</div>
+
+            <div id="output-placeholder" class="result-box text-center"
+                style="color: var(--color-gray-400); padding: var(--space-10);">
+                <div style="font-size: 3rem; margin-bottom: var(--space-3);">🔈</div>
+                <p>Your audio will appear here</p>
+            </div>
+
+            <div id="output-results" class="hidden">
+                <div class="result-box">
+                    <div class="audio-player">
+                        <audio id="audio-player" controls></audio>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 mt-4">
+                    <button type="button" class="btn btn-success btn-full" id="download-btn">
+                        ⬇️ Download MP3
+                    </button>
+                </div>
+
+                <div class="alert alert-info mt-6">
+                    <span class="alert-icon">ℹ️</span>
+                    <span>Audio files are temporary and will be automatically deleted after a few minutes.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('tts-form');
+        const textInput = document.getElementById('text-input');
+        const charCount = document.getElementById('char-count');
+        const slowInput = document.getElementById('slow');
+        const toggleOptions = document.querySelectorAll('.toggle-option');
+        const outputPlaceholder = document.getElementById('output-placeholder');
+        const outputResults = document.getElementById('output-results');
+        const audioPlayer = document.getElementById('audio-player');
+        const downloadBtn = document.getElementById('download-btn');
+        const outputSection = document.getElementById('output-section');
+
+        let audioUrl = null;
+        let filename = null;
+
+        // Character count
+        textInput.addEventListener('input', function () {
+            charCount.textContent = this.value.length;
+        });
+
+        // Speed toggle
+        toggleOptions.forEach(option => {
+            option.addEventListener('click', function () {
+                toggleOptions.forEach(o => o.classList.remove('active'));
+                this.classList.add('active');
+                slowInput.value = this.dataset.value;
+            });
+        });
+
+        // Form submission
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const text = textInput.value.trim();
+            if (!text) {
+                showError(outputSection, 'Please enter some text to convert to speech.');
+                return;
+            }
+
+            hideError(outputSection);
+            showLoading(outputSection, 'Generating audio...');
+
+            try {
+                const data = {
+                    text: text,
+                    language: document.getElementById('language').value,
+                    slow: slowInput.value === 'true'
+                };
+
+                const result = await postJSON('/api/text-to-speech', data);
+
+                audioUrl = result.audio_url;
+                filename = result.filename;
+
+                // Show results
+                outputPlaceholder.classList.add('hidden');
+                outputResults.classList.remove('hidden');
+
+                audioPlayer.src = audioUrl;
+
+            } catch (error) {
+                showError(outputSection, error.message);
+            } finally {
+                hideLoading(outputSection);
+            }
+        });
+
+        // Download audio
+        downloadBtn.addEventListener('click', function () {
+            if (!audioUrl) return;
+
+            const a = document.createElement('a');
+            a.href = `/api/text-to-speech/download/${filename}`;
+            a.download = 'speech.mp3';
+            a.click();
+        });
+    });
+</script>
+{% endblock %}

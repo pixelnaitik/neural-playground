@@ -1,0 +1,448 @@
+{% extends 'base.html' %}
+
+{% block title %}Emotion Mirror - NeuralPlayground{% endblock %}
+
+{% block content %}
+<div class="tool-page container">
+    <div class="tool-header">
+        <div class="tool-icon">😊</div>
+        <h1 class="tool-title">Emotion Mirror</h1>
+        <p class="tool-description">
+            Discover what emotions a photo might express using AI.
+            Upload a photo or use your camera for live emotion detection.
+        </p>
+    </div>
+
+    <div class="tool-content">
+        <!-- Input Section -->
+        <div class="tool-input-section" id="input-section">
+            <div class="section-label">📷 Choose Input Method</div>
+
+            <form id="emotion-form">
+                <div class="form-group">
+                    <div class="toggle-group" id="input-toggle">
+                        <button type="button" class="toggle-option active" data-value="live">🔴 Live Mode</button>
+                        <button type="button" class="toggle-option" data-value="upload">📁 Upload File</button>
+                    </div>
+                </div>
+
+                <!-- File Upload Section -->
+                <div class="form-group hidden" id="upload-section">
+                    <div class="file-upload" id="file-upload">
+                        <input type="file" class="file-upload-input" id="image-input"
+                            accept=".png,.jpg,.jpeg,.gif,.webp">
+                        <div class="file-upload-icon">📁</div>
+                        <div class="file-upload-text">
+                            <strong>Click to upload</strong> or drag and drop<br>
+                            PNG, JPG, GIF up to 10MB
+                        </div>
+                    </div>
+                    <div id="file-name" class="form-hint mt-4" style="display: none;"></div>
+                </div>
+
+
+
+                <!-- Live Mode Section -->
+                <div class="form-group" id="live-section">
+                    <div class="result-box" style="text-align: center; position: relative;">
+                        <video id="live-video" autoplay playsinline
+                            style="width: 100%; max-height: 400px; border-radius: var(--radius-md); background: var(--color-gray-900);"></video>
+                        <canvas id="live-canvas" style="display: none;"></canvas>
+                        <img id="live-output" src="" alt="Live output"
+                            style="width: 100%; max-height: 400px; border-radius: var(--radius-md); display: none; position: absolute; top: 0; left: 0;">
+                    </div>
+                    <div class="mt-4" style="text-align: center;">
+                        <button type="button" class="btn btn-primary" id="start-live-btn" disabled>
+                            ▶️ Start Live Detection
+                        </button>
+                        <button type="button" class="btn btn-danger hidden" id="stop-live-btn">
+                            ⏹️ Stop
+                        </button>
+                    </div>
+                    <div id="live-status" class="form-hint mt-4" style="text-align: center;"></div>
+                    <div id="live-fps" class="form-hint" style="text-align: center; color: var(--color-success);"></div>
+                </div>
+
+                <div id="image-preview" class="result-box hidden mb-4">
+                    <img id="preview-img" src="" alt="Preview"
+                        style="max-height: 200px; margin: 0 auto; border-radius: var(--radius-md);">
+                </div>
+
+                <div id="static-buttons" class="hidden">
+                    <button type="submit" class="btn btn-primary btn-lg btn-full" id="detect-btn" disabled>
+                        😊 Detect Emotions
+                    </button>
+                </div>
+            </form>
+
+            <div class="alert alert-warning mt-6">
+                <span class="alert-icon">⚠️</span>
+                <span>
+                    <strong>Please note:</strong> This tool uses a pre-trained model to estimate emotions.
+                    Results can be wrong – don't over-interpret them or use for any serious decisions.
+                </span>
+            </div>
+        </div>
+
+        <!-- Output Section -->
+        <div class="tool-output-section" id="output-section">
+            <div class="section-label">🎭 Emotion Analysis</div>
+
+            <div id="output-placeholder" class="result-box text-center"
+                style="color: var(--color-gray-400); padding: var(--space-10);">
+                <div style="font-size: 3rem; margin-bottom: var(--space-3);">🎭</div>
+                <p>Emotion analysis will appear here</p>
+            </div>
+
+            <!-- Live Emotions Display -->
+            <div id="live-emotions-display" class="hidden">
+                <div class="result-box mb-4" style="text-align: center;">
+                    <div id="live-dominant-emoji" style="font-size: 4rem; margin-bottom: var(--space-2);">😐</div>
+                    <div id="live-dominant-text" class="result-value" style="font-size: var(--font-size-2xl);">Neutral
+                    </div>
+                    <div id="live-confidence" style="font-size: var(--font-size-sm); color: var(--color-gray-500);">0%
+                        confidence</div>
+                </div>
+                <div id="live-emotions-bars"></div>
+            </div>
+
+            <div id="output-results" class="hidden">
+                <div class="result-box mb-4">
+                    <img id="processed-image" src="" alt="Processed image with emotion labels"
+                        style="width: 100%; border-radius: var(--radius-md);">
+                </div>
+
+                <div id="emotions-list">
+                    <!-- Emotion cards will be inserted here -->
+                </div>
+
+                <div class="alert alert-info mt-6">
+                    <span class="alert-icon">🔬</span>
+                    <span>
+                        <strong>How it works:</strong> The FER (Facial Expression Recognition) library uses a
+                        convolutional neural network to analyze facial features and estimate emotions.
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('emotion-form');
+        const fileUpload = document.getElementById('file-upload');
+        const imageInput = document.getElementById('image-input');
+        const fileName = document.getElementById('file-name');
+        const imagePreview = document.getElementById('image-preview');
+        const previewImg = document.getElementById('preview-img');
+        const detectBtn = document.getElementById('detect-btn');
+        const staticButtons = document.getElementById('static-buttons');
+        const outputPlaceholder = document.getElementById('output-placeholder');
+        const outputResults = document.getElementById('output-results');
+        const outputSection = document.getElementById('output-section');
+
+        // Toggle elements
+        const inputToggle = document.getElementById('input-toggle');
+        const uploadSection = document.getElementById('upload-section');
+
+        // Live mode elements
+        const liveSection = document.getElementById('live-section');
+        const liveVideo = document.getElementById('live-video');
+        const liveCanvas = document.getElementById('live-canvas');
+        const liveOutput = document.getElementById('live-output');
+        const startLiveBtn = document.getElementById('start-live-btn');
+        const stopLiveBtn = document.getElementById('stop-live-btn');
+        const liveStatus = document.getElementById('live-status');
+        const liveFps = document.getElementById('live-fps');
+        const liveEmotionsDisplay = document.getElementById('live-emotions-display');
+        const liveDominantEmoji = document.getElementById('live-dominant-emoji');
+        const liveDominantText = document.getElementById('live-dominant-text');
+        const liveConfidence = document.getElementById('live-confidence');
+        const liveEmotionsBars = document.getElementById('live-emotions-bars');
+
+        let selectedFile = null;
+        let currentStream = null;
+        let inputMode = 'live';
+        let liveProcessing = false;
+        let frameCount = 0;
+        let lastFpsUpdate = Date.now();
+
+        // Auto-start camera since live mode is default
+        setTimeout(() => {
+            startCamera(liveVideo, liveStatus, startLiveBtn);
+        }, 500);
+
+        // Input method toggle
+        inputToggle.querySelectorAll('.toggle-option').forEach(option => {
+            option.addEventListener('click', function () {
+                inputToggle.querySelectorAll('.toggle-option').forEach(o => o.classList.remove('active'));
+                this.classList.add('active');
+                inputMode = this.dataset.value;
+
+                // Hide all sections first
+                uploadSection.classList.add('hidden');
+                liveSection.classList.add('hidden');
+                imagePreview.classList.add('hidden');
+                staticButtons.classList.remove('hidden');
+                outputResults.classList.add('hidden');
+                liveEmotionsDisplay.classList.add('hidden');
+                outputPlaceholder.classList.remove('hidden');
+
+                // Stop any ongoing processes
+                stopCamera();
+                stopLiveProcessing();
+
+                if (inputMode === 'upload') {
+                    uploadSection.classList.remove('hidden');
+                } else if (inputMode === 'live') {
+                    liveSection.classList.remove('hidden');
+                    staticButtons.classList.add('hidden');
+                    startCamera(liveVideo, liveStatus, startLiveBtn);
+                }
+
+                // Reset state
+                selectedFile = null;
+                detectBtn.disabled = true;
+            });
+        });
+
+        // Camera functions
+        async function startCamera(videoElement, statusElement, buttonElement) {
+            statusElement.textContent = 'Starting camera...';
+            buttonElement.disabled = true;
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+                });
+                currentStream = stream;
+                videoElement.srcObject = stream;
+                statusElement.textContent = 'Camera ready!';
+                buttonElement.disabled = false;
+            } catch (error) {
+                console.error('Camera error:', error);
+                statusElement.textContent = '❌ Could not access camera. Please check permissions.';
+                buttonElement.disabled = true;
+            }
+        }
+
+        function stopCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+            liveVideo.srcObject = null;
+            liveStatus.textContent = '';
+        }
+
+        // Live mode functions
+        startLiveBtn.addEventListener('click', function () {
+            if (!currentStream) return;
+            startLiveProcessing();
+        });
+
+        stopLiveBtn.addEventListener('click', function () {
+            stopLiveProcessing();
+        });
+
+        function startLiveProcessing() {
+            liveProcessing = true;
+            startLiveBtn.classList.add('hidden');
+            stopLiveBtn.classList.remove('hidden');
+            liveOutput.style.display = 'block';
+            liveStatus.textContent = '🔴 Live processing active...';
+            outputPlaceholder.classList.add('hidden');
+            liveEmotionsDisplay.classList.remove('hidden');
+            frameCount = 0;
+            lastFpsUpdate = Date.now();
+            processLiveFrame();
+        }
+
+        function stopLiveProcessing() {
+            liveProcessing = false;
+            startLiveBtn.classList.remove('hidden');
+            stopLiveBtn.classList.add('hidden');
+            liveOutput.style.display = 'none';
+            liveStatus.textContent = 'Live processing stopped.';
+            liveFps.textContent = '';
+        }
+
+        async function processLiveFrame() {
+            if (!liveProcessing || !currentStream) return;
+
+            try {
+                // Capture frame
+                liveCanvas.width = liveVideo.videoWidth;
+                liveCanvas.height = liveVideo.videoHeight;
+                const ctx = liveCanvas.getContext('2d');
+                ctx.drawImage(liveVideo, 0, 0);
+
+                const frameData = liveCanvas.toDataURL('image/jpeg', 0.7);
+
+                // Send to server
+                const response = await fetch('/api/emotion/live', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ frame: frameData })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.processed_frame) {
+                    liveOutput.src = result.processed_frame;
+
+                    // Update emotion display
+                    if (result.emotions && result.emotions.length > 0) {
+                        const face = result.emotions[0];
+                        liveDominantEmoji.textContent = face.dominant_emoji;
+                        liveDominantText.textContent = face.dominant_emotion.charAt(0).toUpperCase() + face.dominant_emotion.slice(1);
+                        liveConfidence.textContent = `${face.confidence.toFixed(0)}% confidence`;
+
+                        // Update emotion bars
+                        const bars = Object.entries(face.all_emotions)
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([emotion, score]) => `
+                                <div class="flex items-center gap-3 mb-2">
+                                    <span style="width: 80px; font-size: var(--font-size-xs); text-transform: capitalize;">${emotion}</span>
+                                    <div class="progress-bar" style="flex: 1; height: 6px;">
+                                        <div class="progress-fill primary" style="width: ${score}%; transition: width 0.2s;"></div>
+                                    </div>
+                                    <span style="width: 40px; font-size: var(--font-size-xs); text-align: right;">${score.toFixed(0)}%</span>
+                                </div>
+                            `).join('');
+                        liveEmotionsBars.innerHTML = bars;
+                    } else {
+                        liveDominantEmoji.textContent = '🔍';
+                        liveDominantText.textContent = 'No face detected';
+                        liveConfidence.textContent = '';
+                        liveEmotionsBars.innerHTML = '';
+                    }
+
+                    // FPS counter
+                    frameCount++;
+                    const now = Date.now();
+                    if (now - lastFpsUpdate >= 1000) {
+                        liveFps.textContent = `${frameCount} FPS`;
+                        frameCount = 0;
+                        lastFpsUpdate = now;
+                    }
+                }
+            } catch (error) {
+                console.error('Live processing error:', error);
+            }
+
+            // Continue processing - aim for ~10 FPS due to server processing time
+            if (liveProcessing) {
+                setTimeout(processLiveFrame, 100);
+            }
+        }
+
+        // File upload handling
+        function handleFileSelect(file) {
+            try {
+                validateFileType(file, ['png', 'jpg', 'jpeg', 'gif', 'webp']);
+                validateFileSize(file, 10);
+
+                selectedFile = file;
+                fileName.textContent = `Selected: ${file.name}`;
+                fileName.style.display = 'block';
+                detectBtn.disabled = false;
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    previewImg.src = e.target.result;
+                    imagePreview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+
+            } catch (error) {
+                showError(document.getElementById('input-section'), error.message);
+            }
+        }
+
+        setupFileUpload(fileUpload, handleFileSelect);
+
+        // Form submission
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            if (!selectedFile) {
+                showError(outputSection, 'Please select an image first.');
+                return;
+            }
+
+            hideError(outputSection);
+            showLoading(outputSection, 'Analyzing emotions... This may take a moment.');
+
+            try {
+                const formData = new FormData();
+                formData.append('image', selectedFile);
+
+                const result = await postFormData('/api/emotion-detect', formData);
+
+                outputPlaceholder.classList.add('hidden');
+                outputResults.classList.remove('hidden');
+
+                document.getElementById('processed-image').src = result.processed_image;
+
+                const emotionsList = document.getElementById('emotions-list');
+
+                if (result.emotions.length === 0) {
+                    emotionsList.innerHTML = `
+                    <div class="alert alert-warning">
+                        <span class="alert-icon">🤔</span>
+                        <span>No faces detected in this image. Try uploading a clearer photo with visible faces.</span>
+                    </div>
+                `;
+                } else {
+                    emotionsList.innerHTML = result.emotions.map((face, index) => {
+                        const emotionBars = Object.entries(face.all_emotions)
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([emotion, score]) => `
+                            <div class="flex items-center gap-3 mb-2">
+                                <span style="width: 80px; font-size: var(--font-size-xs); text-transform: capitalize;">${emotion}</span>
+                                <div class="progress-bar" style="flex: 1; height: 6px;">
+                                    <div class="progress-fill primary" style="width: ${score}%;"></div>
+                                </div>
+                                <span style="width: 40px; font-size: var(--font-size-xs); text-align: right;">${score.toFixed(0)}%</span>
+                            </div>
+                        `).join('');
+
+                        return `
+                        <div class="result-box mb-4">
+                            <div class="flex items-center gap-4 mb-4">
+                                <span style="font-size: 2.5rem;">${face.dominant_emoji}</span>
+                                <div>
+                                    <div class="result-value" style="font-size: var(--font-size-xl);">
+                                        ${face.dominant_emotion.charAt(0).toUpperCase() + face.dominant_emotion.slice(1)}
+                                    </div>
+                                    <div style="font-size: var(--font-size-sm); color: var(--color-gray-500);">
+                                        Face ${face.face_id} • ${face.confidence.toFixed(0)}% confidence
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="result-label mb-3">All Detected Emotions</div>
+                            ${emotionBars}
+                        </div>
+                    `;
+                    }).join('');
+                }
+
+            } catch (error) {
+                showError(outputSection, error.message);
+            } finally {
+                hideLoading(outputSection);
+            }
+        });
+
+        // Cleanup on page leave
+        window.addEventListener('beforeunload', () => {
+            stopCamera();
+            stopLiveProcessing();
+        });
+    });
+</script>
+{% endblock %}

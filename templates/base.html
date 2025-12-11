@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="NeuralPlayground - Simple AI tools for everyone. Explore text, images, audio, and vision models in your browser.">
+    <title>{% block title %}NeuralPlayground{% endblock %}</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container navbar-container">
+            <a href="/" class="navbar-brand">
+                <span class="brand-icon">🧠</span>
+                <span class="brand-text">NeuralPlayground</span>
+            </a>
+
+            <button class="navbar-toggle" id="navbarToggle" aria-label="Toggle navigation">
+                <span class="toggle-bar"></span>
+                <span class="toggle-bar"></span>
+                <span class="toggle-bar"></span>
+            </button>
+
+            <ul class="navbar-menu" id="navbarMenu">
+                <li><a href="/" class="navbar-link {% if request.path == '/' %}active{% endif %}">Home</a></li>
+                <li class="navbar-dropdown">
+                    <a href="#" class="navbar-link dropdown-toggle {% if '/tools/' in request.path %}active{% endif %}">
+                        Tools <span class="dropdown-arrow">▼</span>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a href="/tools/fake-data">🎲 Fake Data Lab</a></li>
+                        <li><a href="/tools/text-to-speech">🔊 Voice Studio</a></li>
+                        <li><a href="/tools/ascii-art">🎨 ASCII Art Lab</a></li>
+                        <li><a href="/tools/qr-code">📱 QR & Codes Lab</a></li>
+                        <li><a href="/tools/text-sense">📝 Text Sense Lab</a></li>
+                        <li><a href="/tools/vision-playground">👁️ Vision Playground</a></li>
+                        <li><a href="/tools/emotion-mirror">😊 Emotion Mirror</a></li>
+                    </ul>
+                </li>
+                <li><a href="/about" class="navbar-link {% if request.path == '/about' %}active{% endif %}">About</a>
+                </li>
+                <!-- Theme Toggle -->
+                <li>
+                    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme"
+                        title="Toggle Dark/Light Mode">
+                        <span class="theme-icon theme-icon-dark">🌙</span>
+                        <span class="theme-icon theme-icon-light">☀️</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <span class="brand-icon">🧠</span>
+                    <span>NeuralPlayground</span>
+                </div>
+                <p class="footer-text">
+                    Explore AI capabilities through simple, interactive tools.
+                    <br>Built for learning and experimentation.
+                </p>
+            </div>
+            <div class="footer-bottom">
+                <p>Made with ❤️ for AI enthusiasts.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Global Theme Styles (applies to ALL pages) -->
+    <style>
+        /* ============================================
+           GLOBAL DARK THEME (Default)
+           ============================================ */
+        body {
+            background: #030014;
+            background-image:
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120, 119, 198, 0.15), transparent),
+                radial-gradient(ellipse 60% 40% at 100% 100%, rgba(139, 92, 246, 0.1), transparent);
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        /* NAVBAR - Floating Glass (Dark Mode Default) */
+        .navbar {
+            background: rgba(10, 10, 26, 0.7) !important;
+            backdrop-filter: blur(20px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        .navbar-brand {
+            color: rgba(255, 255, 255, 0.95) !important;
+            text-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .navbar-link {
+            color: rgba(255, 255, 255, 0.6) !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .navbar-link:hover {
+            color: rgba(255, 255, 255, 0.95) !important;
+            text-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+            background: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        .dropdown-menu {
+            background: rgba(18, 18, 31, 0.95) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            backdrop-filter: blur(20px) !important;
+        }
+
+        .dropdown-menu a {
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        .dropdown-menu a:hover {
+            background: rgba(139, 92, 246, 0.1) !important;
+            color: rgba(255, 255, 255, 0.95) !important;
+        }
+
+        /* Tool Page Sections */
+        .tool-page,
+        .tool-content,
+        .tool-input-section,
+        .tool-output-section {
+            background: rgba(255, 255, 255, 0.03) !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Tool Header - Dark */
+        .tool-header {
+            text-align: center;
+            background: transparent !important;
+        }
+
+        .tool-icon {
+            font-size: 3rem;
+            filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.3));
+        }
+
+        .tool-title,
+        .tool-header h1,
+        .section-label {
+            color: rgba(255, 255, 255, 0.95) !important;
+            text-shadow: 0 0 30px rgba(139, 92, 246, 0.2);
+        }
+
+        .tool-description {
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        .tool-description {
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        /* Form Elements - Dark */
+        .form-input,
+        .form-select,
+        .form-textarea {
+            background: rgba(255, 255, 255, 0.05) !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+
+        .form-input::placeholder,
+        .form-textarea::placeholder {
+            color: rgba(255, 255, 255, 0.4) !important;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            border-color: rgba(139, 92, 246, 0.5) !important;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2) !important;
+        }
+
+        .form-label {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+
+        /* Toggle Group - Dark */
+        .toggle-group {
+            background: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        .toggle-option {
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        .toggle-option.active {
+            background: rgba(139, 92, 246, 0.2) !important;
+            color: rgba(255, 255, 255, 0.95) !important;
+        }
+
+        /* File Upload - Dark */
+        .file-upload {
+            background: rgba(255, 255, 255, 0.03) !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        .file-upload:hover {
+            border-color: rgba(139, 92, 246, 0.4) !important;
+            background: rgba(139, 92, 246, 0.05) !important;
+        }
+
+        .file-upload-text {
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        /* Result Boxes - Dark */
+        .result-box,
+        .output-box {
+            background: rgba(255, 255, 255, 0.03) !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+
+        /* Stat Cards - Dark */
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03) !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        .stat-value {
+            color: #a78bfa !important;
+        }
+
+        .stat-label {
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        /* ============================================
+           GLOBAL LIGHT THEME (when .light-mode)
+           ============================================ */
+        body.light-mode {
+            background: #f8fafc !important;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(79, 70, 229, 0.05), transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(14, 165, 233, 0.05), transparent 40%) !important;
+            color: #1e293b !important;
+        }
+
+        /* Tool Page Sections - Light */
+        body.light-mode .tool-page,
+        body.light-mode .tool-content,
+        body.light-mode .tool-input-section,
+        body.light-mode .tool-output-section {
+            background: rgba(255, 255, 255, 0.8) !important;
+            border-color: rgba(0, 0, 0, 0.08) !important;
+            color: #1e293b !important;
+        }
+
+        body.light-mode .tool-title,
+        body.light-mode .tool-header h1,
+        body.light-mode .section-label {
+            color: #0f172a !important;
+        }
+
+        body.light-mode .tool-description {
+            color: #64748b !important;
+        }
+
+        /* Form Elements - Light */
+        body.light-mode .form-input,
+        body.light-mode .form-select,
+        body.light-mode .form-textarea {
+            background: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            color: #1e293b !important;
+        }
+
+        body.light-mode .form-input::placeholder,
+        body.light-mode .form-textarea::placeholder {
+            color: #94a3b8 !important;
+        }
+
+        body.light-mode .form-input:focus,
+        body.light-mode .form-select:focus,
+        body.light-mode .form-textarea:focus {
+            border-color: #4f46e5 !important;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
+        }
+
+        body.light-mode .form-label {
+            color: #334155 !important;
+        }
+
+        /* Toggle Group - Light */
+        body.light-mode .toggle-group {
+            background: #f1f5f9 !important;
+        }
+
+        body.light-mode .toggle-option {
+            color: #64748b !important;
+        }
+
+        body.light-mode .toggle-option.active {
+            background: #ffffff !important;
+            color: #4f46e5 !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        /* File Upload - Light */
+        body.light-mode .file-upload {
+            background: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        body.light-mode .file-upload:hover {
+            border-color: #4f46e5 !important;
+            background: rgba(79, 70, 229, 0.05) !important;
+        }
+
+        body.light-mode .file-upload-text {
+            color: #64748b !important;
+        }
+
+        /* Result Boxes - Light */
+        body.light-mode .result-box,
+        body.light-mode .output-box {
+            background: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            color: #1e293b !important;
+        }
+
+        /* Stat Cards - Light */
+        body.light-mode .stat-card {
+            background: #ffffff !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        body.light-mode .stat-value {
+            color: #4f46e5 !important;
+        }
+
+        body.light-mode .stat-label {
+            color: #64748b !important;
+        }
+    </style>
+
+    <!-- Theme Toggle Styles -->
+    <style>
+        /* Theme Toggle Button */
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .theme-icon {
+            font-size: 1.3rem;
+            position: absolute;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Dark mode (default) - show moon */
+        .theme-icon-dark {
+            opacity: 1;
+            transform: rotate(0deg) scale(1);
+        }
+
+        .theme-icon-light {
+            opacity: 0;
+            transform: rotate(-90deg) scale(0.5);
+        }
+
+        /* Light mode - show sun */
+        body.light-mode .theme-icon-dark {
+            opacity: 0;
+            transform: rotate(90deg) scale(0.5);
+        }
+
+        body.light-mode .theme-icon-light {
+            opacity: 1;
+            transform: rotate(0deg) scale(1);
+        }
+
+        /* Light Mode Overrides */
+        body.light-mode {
+            background: #f8fafc !important;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(79, 70, 229, 0.05), transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(14, 165, 233, 0.05), transparent 40%) !important;
+            color: #1e293b !important;
+        }
+
+        body.light-mode .navbar {
+            background: rgba(255, 255, 255, 0.9) !important;
+            border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+        }
+
+        body.light-mode .navbar-brand,
+        body.light-mode .navbar-link {
+            color: #334155 !important;
+        }
+
+        body.light-mode .dropdown-menu {
+            background: rgba(255, 255, 255, 0.98) !important;
+            border-color: rgba(0, 0, 0, 0.08) !important;
+        }
+
+        body.light-mode .dropdown-menu a {
+            color: #475569 !important;
+        }
+
+        body.light-mode .card {
+            background: rgba(255, 255, 255, 0.8) !important;
+            border-color: rgba(0, 0, 0, 0.08) !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        body.light-mode .card-title {
+            color: #1e293b !important;
+        }
+
+        body.light-mode .card-description {
+            color: #64748b !important;
+        }
+
+        body.light-mode .section-title,
+        body.light-mode .hero-title {
+            color: #0f172a !important;
+            text-shadow: none !important;
+        }
+
+        body.light-mode .hero-subtitle {
+            color: #334155 !important;
+        }
+
+        body.light-mode .hero-description {
+            color: #64748b !important;
+        }
+
+        body.light-mode .footer {
+            background: #fff !important;
+            border-top-color: rgba(0, 0, 0, 0.05) !important;
+        }
+
+        body.light-mode .footer-brand,
+        body.light-mode .footer-text {
+            color: #475569 !important;
+        }
+
+        body.light-mode .theme-toggle {
+            background: rgba(0, 0, 0, 0.08);
+        }
+
+        body.light-mode .theme-toggle:hover {
+            background: rgba(0, 0, 0, 0.12);
+        }
+
+        body.light-mode .orb {
+            opacity: 0.3;
+        }
+
+        /* Light Mode - Buttons (Better Readability) */
+        body.light-mode .btn-primary,
+        body.light-mode .btn-glass {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+            color: #ffffff !important;
+            border: none !important;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3) !important;
+        }
+
+        body.light-mode .btn-primary:hover,
+        body.light-mode .btn-glass:hover {
+            background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%) !important;
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4) !important;
+        }
+
+        /* Light Mode - Section Badge */
+        body.light-mode .section-badge {
+            background: rgba(245, 158, 11, 0.15) !important;
+            color: #b45309 !important;
+            border-color: rgba(245, 158, 11, 0.3) !important;
+        }
+
+        /* Light Mode - Card Icon */
+        body.light-mode .card-icon {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.15), rgba(14, 165, 233, 0.1)) !important;
+        }
+
+        /* Light Mode - Card Hover */
+        body.light-mode .card:hover {
+            border-color: rgba(79, 70, 229, 0.2) !important;
+            box-shadow: 0 10px 40px rgba(79, 70, 229, 0.1) !important;
+        }
+
+        /* Light Mode - Dropdown Hover */
+        body.light-mode .dropdown-menu a:hover {
+            background: rgba(79, 70, 229, 0.08) !important;
+            color: #4f46e5 !important;
+        }
+    </style>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+    <!-- Theme Toggle Script -->
+    <script>
+        (function () {
+            const toggle = document.getElementById('themeToggle');
+            const body = document.body;
+
+            // Check saved preference
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                body.classList.add('light-mode');
+            }
+
+            // Toggle handler
+            if (toggle) {
+                toggle.addEventListener('click', function () {
+                    body.classList.toggle('light-mode');
+                    const isLight = body.classList.contains('light-mode');
+                    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+                });
+            }
+        })();
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

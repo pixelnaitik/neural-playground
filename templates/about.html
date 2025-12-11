@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block title %}About - NeuralPlayground{% endblock %}
+
+{% block content %}
+<div class="about-section">
+    <!-- Personal Introduction -->
+    <div class="intro-card"
+        style="background: linear-gradient(135deg, #0a0a12 0%, #1a1a2e 50%, #16213e 100%); padding: 2.5rem; border-radius: var(--radius-lg); margin-bottom: 2rem; border: 1px solid #2a2a4a; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+        <h1 style="margin-bottom: 1rem; color: #fff;">👋 Hi, I'm Naitik!</h1>
+        <p style="font-size: 1.1rem; line-height: 1.8; color: #e0e0e0;">
+            I'm a first-year Computer Science Engineering student at <strong style="color: #60a5fa;">KIIT
+                University</strong> (2nd semester).
+            I'm deeply passionate about <strong style="color: #10b981;">Artificial Intelligence</strong> and
+            <strong style="color: #10b981;">Machine Learning</strong>, and I created this website as a space to
+            experiment, learn, and share my journey.
+        </p>
+        <p style="font-size: 1.1rem; line-height: 1.8; color: #d0d0d0; margin-top: 1rem;">
+            This project is more than just code – it's my way of inviting others to <em style="color: #a78bfa;">try,
+                explore, and play</em> with the ideas I'm building.
+            Whether you're curious about AI, interested in web development, or simply want to see what a student project
+            looks like, this site is open for you.
+        </p>
+        <p style="font-size: 1.1rem; line-height: 1.8; color: #f0f0f0; margin-top: 1rem; font-weight: 500;">
+            🚀 Feel free to interact with the features, test things out, and join me in exploring the exciting world of
+            technology!
+        </p>
+    </div>
+
+    <h1>About NeuralPlayground</h1>
+
+    <p>
+        <strong>NeuralPlayground</strong> is an interactive platform designed to make AI and machine learning
+        tools accessible to everyone. Whether you're a curious beginner or someone looking to
+        explore what AI can do, this playground lets you experiment without writing any code.
+    </p>
+
+    <p>
+        Each tool on this site demonstrates a different AI capability – from generating
+        synthetic data to analyzing emotions in photos. Our goal is to demystify AI
+        technology and show you what's possible with modern machine learning tools.
+    </p>
+
+    <!-- Stylish Features Header -->
+    <!-- Stylish Features Header -->
+    <div style="text-align: center; margin: 3rem 0 2rem 0;">
+        <h2
+            style="display: inline-block; color: #fff; font-size: 2rem; font-weight: 700; margin: 0; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">
+            🛠️ What Can You Do Here?
+        </h2>
+        <div style="width: 200px; height: 3px; background: #3b82f6; margin: 1rem auto; border-radius: 2px;"></div>
+    </div>
+
+    <div class="features-grid"
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin: 1.5rem 0;">
+        <div class="feature-card"
+            style="background: #050505; padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid #222; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.2s, border-color 0.2s;">
+            <h3 style="color: #60a5fa; margin-bottom: 0.5rem; font-size: 1.25rem;">🎲 Fake Data Lab</h3>
+            <p style="color: #9ca3af; font-size: 0.95rem; line-height: 1.6;">Generate realistic fake data for testing –
+                names, emails, addresses, phone numbers, and more. Great for developers and anyone learning about data.
+            </p>
+        </div>
+
+        <div class="feature-card"
+            style="background: #050505; padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid #222; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.2s, border-color 0.2s;">
+            <h3 style="color: #60a5fa; margin-bottom: 0.5rem; font-size: 1.25rem;">🔊 Voice Studio</h3>
+            <p style="color: #9ca3af; font-size: 0.95rem; line-height: 1.6;">Convert any text into natural-sounding
+                speech in multiple languages. Perfect for creating audio content or accessibility testing.</p>
+        </div>
+
+        <div class="feature-card"
+            style="background: #050505; padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid #222; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.2s, border-color 0.2s;">
+            <h3 style="color: #60a5fa; margin-bottom: 0.5rem; font-size: 1.25rem;">🎨 ASCII Art Lab</h3>
+            <p style="color: #9ca3af; font-size: 0.95rem; line-height: 1.6;">Transform photos into text-based art OR
+                convert text into cool ASCII art with 14+ font styles. A fun way to see creative computing!</p>
+        </div>
+
+        <div class="feature-card"
+            style="background: #050505; padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid #222; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.2s, border-color 0.2s;">
+            <h3 style="color: #60a5fa; margin-bottom: 0.5rem; font-size: 1.25rem;">📱 QR & Codes Lab</h3>
+            <p style="color: #9ca3af; font-size: 0.95rem; line-height: 1.6;">Create QR codes instantly for websites,
+                messages, or contact information. Download and share them anywhere.</p>
+        </div>
+
+        <div class="feature-card"
+            style="background: #050505; padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid #222; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.2s, border-color 0.2s;">
+            <h3 style="color: #60a5fa; margin-bottom: 0.5rem; font-size: 1.25rem;">📝 Text Sense Lab</h3>
+            <p style="color: #9ca3af; font-size: 0.95rem; line-height: 1.6;">Analyze text for sentiment
+                (positive/negative), view detailed polarity scores, check spelling, extract keywords, and find similar
+                phrases with fuzzy matching.</p>
+        </div>
+
+        <div class="feature-card"
+            style="background: #050505; padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid #222; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.2s, border-color 0.2s;">
+            <h3 style="color: #60a5fa; margin-bottom: 0.5rem; font-size: 1.25rem;">👁️ Vision Playground</h3>
+            <p style="color: #9ca3af; font-size: 0.95rem; line-height: 1.6;">Detect faces and hands in real-time using
+                your webcam or uploaded photos. Powered by Google's MediaPipe for accurate, fast detection.</p>
+        </div>
+
+        <div class="feature-card"
+            style="background: #050505; padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid #222; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.2s, border-color 0.2s;">
+            <h3 style="color: #60a5fa; margin-bottom: 0.5rem; font-size: 1.25rem;">😊 Emotion Mirror</h3>
+            <p style="color: #9ca3af; font-size: 0.95rem; line-height: 1.6;">Upload a photo or use your webcam to
+                discover what emotions are expressed. Uses deep learning to analyze facial expressions in real-time.</p>
+        </div>
+    </div>
+
+    <h2>🎓 Educational Purpose</h2>
+
+    <p>
+        NeuralPlayground is built for <strong>experimentation and education</strong>. The results you see are
+        generated by real AI models, but remember – AI isn't perfect! Results may vary, and
+        you shouldn't rely on these tools for critical decisions.
+    </p>
+
+    <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <span>
+            <strong>Pro Tip:</strong> Hover over the
+            <span class="tooltip-trigger" data-tooltip="Like this one!">?</span>
+            icons throughout the site to learn what various terms mean.
+        </span>
+    </div>
+
+    <h2>⚙️ Technology Stack</h2>
+
+    <p>
+        This site is powered by <strong>Python</strong> and <strong>Flask</strong> on the backend, with several popular
+        AI/ML libraries.
+        Here's what's running under the hood:
+    </p>
+
+    <div class="library-list">
+        {% for lib in libraries %}
+        <div class="library-item">
+            <div class="library-name">{{ lib.name }}</div>
+            <div class="library-desc">{{ lib.description }}</div>
+            <div class="library-used">Used in: {{ lib.used_in }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <h2>🔒 Privacy Note</h2>
+
+    <p>
+        All processing happens on the server – your data is <strong>not stored permanently</strong>.
+        Uploaded images and generated files are temporary and are automatically cleaned up.
+        We don't collect personal information or track your usage beyond basic server logs.
+    </p>
+
+    <div class="text-center mt-8">
+        <a href="/" class="btn btn-primary btn-lg">← Back to Tools</a>
+    </div>
+</div>
+{% endblock %}

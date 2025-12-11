@@ -1,0 +1,448 @@
+{% extends 'base.html' %}
+
+{% block title %}Text Sense Lab - NeuralPlayground{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Smooth animations for results */
+    .result-box {
+        transition: all 0.4s ease-out;
+        opacity: 1;
+    }
+
+    .result-box.animate-in {
+        animation: slideIn 0.5s ease-out forwards;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Progress bar animations */
+    .progress-bar {
+        overflow: hidden;
+        border-radius: 6px;
+    }
+
+    .progress-fill {
+        transition: width 0.8s ease-out;
+    }
+
+    /* Polarity scale */
+    .polarity-scale {
+        background: linear-gradient(to right, #ef4444, #f97316, #eab308, #84cc16, #22c55e);
+        height: 16px;
+        border-radius: 8px;
+        position: relative;
+    }
+
+    .polarity-marker {
+        position: absolute;
+        top: -4px;
+        width: 8px;
+        height: 24px;
+        background: #1f2937;
+        border: 2px solid white;
+        border-radius: 4px;
+        transform: translateX(-50%);
+        transition: left 0.8s ease-out;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Badge animations */
+    .badge {
+        transition: all 0.3s ease;
+    }
+
+    .badge:hover {
+        transform: scale(1.05);
+    }
+
+    /* Stats cards */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-4);
+        margin-bottom: var(--space-6);
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, var(--color-gray-50), white);
+        border-radius: var(--radius-lg);
+        padding: var(--space-4);
+        text-align: center;
+        border: 1px solid var(--color-gray-200);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+
+    .stat-label {
+        font-size: var(--font-size-sm);
+        color: var(--color-gray-600);
+        margin-top: var(--space-1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tool-page container">
+    <div class="tool-header">
+        <div class="tool-icon">📝</div>
+        <h1 class="tool-title">Text Sense Lab</h1>
+        <p class="tool-description">
+            Advanced NLP analysis: sentiment, entities, keywords, readability, summarization, and more.
+        </p>
+    </div>
+
+    <div class="tool-content">
+        <!-- Input Section -->
+        <div class="tool-input-section" id="input-section">
+            <div class="section-label">✍️ Enter Your Text</div>
+
+            <form id="text-form">
+                <div class="form-group">
+                    <label class="form-label">Text to analyze</label>
+                    <textarea class="form-textarea" id="text-input" name="text"
+                        placeholder="Paste a paragraph, article, or any text you want to analyze..." maxlength="10000"
+                        rows="6"></textarea>
+                    <div class="form-hint">
+                        <span id="char-count">0</span> / 10000 characters
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg btn-full">
+                    🔍 Analyze Text
+                </button>
+            </form>
+        </div>
+
+        <!-- Output Section -->
+        <div class="tool-output-section" id="output-section">
+            <div class="section-label">📊 Analysis Results</div>
+
+            <div id="output-placeholder" class="result-box text-center"
+                style="color: var(--color-gray-400); padding: var(--space-10);">
+                <div style="font-size: 3rem; margin-bottom: var(--space-3);">📈</div>
+                <p>Your analysis results will appear here</p>
+            </div>
+
+            <div id="output-results" class="hidden">
+                <!-- Basic Stats -->
+                <div id="basic-stats"></div>
+
+                <!-- Sentiment -->
+                <div id="sentiment-section" class="result-box mb-4 hidden">
+                    <div class="result-label">😊 Sentiment Analysis</div>
+                    <div id="sentiment-content" class="mt-3"></div>
+                </div>
+
+                <!-- Summary -->
+                <div id="summary-section" class="result-box mb-4 hidden">
+                    <div class="result-label">📄 Summary</div>
+                    <div id="summary-content" class="mt-3"></div>
+                </div>
+
+                <!-- Readability -->
+                <div id="readability-section" class="result-box mb-4 hidden">
+                    <div class="result-label">📚 Readability</div>
+                    <div id="readability-content" class="mt-3"></div>
+                </div>
+
+                <!-- Keywords -->
+                <div id="keywords-section" class="result-box mb-4 hidden">
+                    <div class="result-label">🔑 Keywords</div>
+                    <div id="keywords-content" class="mt-3"></div>
+                </div>
+
+                <!-- Named Entities -->
+                <div id="ner-section" class="result-box mb-4 hidden">
+                    <div class="result-label">🏷️ Named Entities</div>
+                    <div id="ner-content" class="mt-3"></div>
+                </div>
+
+                <!-- Subjectivity -->
+                <div id="subjectivity-section" class="result-box mb-4 hidden">
+                    <div class="result-label">⚖️ Subjectivity</div>
+                    <div id="subjectivity-content" class="mt-3"></div>
+                </div>
+
+                <!-- Topics -->
+                <div id="topics-section" class="result-box mb-4 hidden">
+                    <div class="result-label">💭 Topics</div>
+                    <div id="topics-content" class="mt-3"></div>
+                </div>
+
+                <!-- Spelling -->
+                <div id="spelling-section" class="result-box hidden">
+                    <div class="result-label">✏️ Spelling Check</div>
+                    <div id="spelling-content" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('text-form');
+        const textInput = document.getElementById('text-input');
+        const charCount = document.getElementById('char-count');
+        const outputPlaceholder = document.getElementById('output-placeholder');
+        const outputResults = document.getElementById('output-results');
+        const outputSection = document.getElementById('output-section');
+
+        textInput.addEventListener('input', function () {
+            charCount.textContent = this.value.length;
+        });
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const text = textInput.value.trim();
+            if (!text) {
+                showError(outputSection, 'Please enter some text to analyze.');
+                return;
+            }
+
+            hideError(outputSection);
+            showLoading(outputSection, 'Analyzing text...');
+
+            try {
+                const [basicResult, advancedResult] = await Promise.all([
+                    postJSON('/api/text-analysis', { text }),
+                    postJSON('/api/text-advanced', { text })
+                ]);
+
+                outputPlaceholder.classList.add('hidden');
+                outputResults.classList.remove('hidden');
+
+                const results = advancedResult.results;
+                let delay = 0;
+
+                // Basic Stats with animation
+                document.getElementById('basic-stats').innerHTML = `
+                    <div class="stats-grid">
+                        <div class="stat-card animate-in" style="animation-delay: ${delay}ms;">
+                            <div class="stat-value">${basicResult.stats.word_count}</div>
+                            <div class="stat-label">Words</div>
+                        </div>
+                        <div class="stat-card animate-in" style="animation-delay: ${delay + 100}ms;">
+                            <div class="stat-value">${basicResult.stats.sentence_count}</div>
+                            <div class="stat-label">Sentences</div>
+                        </div>
+                        <div class="stat-card animate-in" style="animation-delay: ${delay + 200}ms;">
+                            <div class="stat-value">${basicResult.stats.character_count}</div>
+                            <div class="stat-label">Characters</div>
+                        </div>
+                    </div>
+                `;
+                delay += 300;
+
+                // Sentiment with percentage scale
+                if (basicResult.sentiment) {
+                    const section = document.getElementById('sentiment-section');
+                    section.classList.remove('hidden');
+                    section.classList.add('animate-in');
+                    section.style.animationDelay = delay + 'ms';
+
+                    const sent = basicResult.sentiment;
+                    const polarityPercent = ((sent.polarity + 1) / 2 * 100).toFixed(0);
+
+                    document.getElementById('sentiment-content').innerHTML = `
+                        <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+                            <span style="font-size: 3rem;">${sent.emoji}</span>
+                            <div style="flex: 1;">
+                                <div style="font-size: 1.5rem; font-weight: 600; color: ${sent.color};">${sent.label}</div>
+                                <div style="color: var(--color-gray-500);">Polarity: ${sent.polarity.toFixed(2)}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 2rem; font-weight: 700; color: var(--color-primary);">${polarityPercent}%</div>
+                                <div style="font-size: var(--font-size-xs); color: var(--color-gray-500);">Positivity</div>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: var(--space-2);">
+                            <div class="polarity-scale">
+                                <div class="polarity-marker" style="left: ${polarityPercent}%;"></div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-top: var(--space-1); font-size: var(--font-size-xs); color: var(--color-gray-500);">
+                                <span>0%</span>
+                                <span>25%</span>
+                                <span>50%</span>
+                                <span>75%</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: var(--space-4); margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-gray-200);">
+                            <div style="flex: 1;">
+                                <strong>Subjectivity:</strong> ${sent.subjectivity_label}
+                            </div>
+                            <div style="font-size: var(--font-size-sm); color: var(--color-gray-500);">
+                                ${(sent.subjectivity * 100).toFixed(0)}% opinion-based
+                            </div>
+                        </div>
+                    `;
+                    delay += 150;
+                }
+
+                // Summary
+                if (results.summary && !results.summary.error && results.summary.text) {
+                    const section = document.getElementById('summary-section');
+                    section.classList.remove('hidden');
+                    section.classList.add('animate-in');
+                    section.style.animationDelay = delay + 'ms';
+
+                    document.getElementById('summary-content').innerHTML = `
+                        <p style="font-style: italic; color: var(--color-gray-700); line-height: 1.6;">"${escapeHtml(results.summary.text)}"</p>
+                        <div style="margin-top: var(--space-2); font-size: var(--font-size-xs); color: var(--color-gray-500);">
+                            Compressed to ${results.summary.compression_ratio}% of original
+                        </div>
+                    `;
+                    delay += 150;
+                }
+
+                // Readability
+                if (results.readability && !results.readability.error) {
+                    const section = document.getElementById('readability-section');
+                    section.classList.remove('hidden');
+                    section.classList.add('animate-in');
+                    section.style.animationDelay = delay + 'ms';
+
+                    const r = results.readability;
+                    document.getElementById('readability-content').innerHTML = `
+                        <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-3);">
+                            <div style="font-size: 2.5rem; font-weight: 700; color: var(--color-primary);">${r.flesch_reading_ease}</div>
+                            <div>
+                                <div style="font-weight: 600;">${r.interpretation}</div>
+                                <div style="font-size: var(--font-size-sm); color: var(--color-gray-500);">Grade: ${r.text_standard}</div>
+                            </div>
+                        </div>
+                    `;
+                    delay += 150;
+                }
+
+                // Keywords
+                if (results.keywords && !results.keywords.error && results.keywords.keywords.length > 0) {
+                    const section = document.getElementById('keywords-section');
+                    section.classList.remove('hidden');
+                    section.classList.add('animate-in');
+                    section.style.animationDelay = delay + 'ms';
+
+                    document.getElementById('keywords-content').innerHTML = `
+                        <div style="display: flex; flex-wrap: wrap; gap: var(--space-2);">
+                            ${results.keywords.keywords.map(kw =>
+                        `<span class="badge badge-primary">${escapeHtml(kw.keyword)}</span>`
+                    ).join('')}
+                        </div>
+                    `;
+                    delay += 150;
+                }
+
+                // NER
+                if (results.ner && !results.ner.error && results.ner.total > 0) {
+                    const section = document.getElementById('ner-section');
+                    section.classList.remove('hidden');
+                    section.classList.add('animate-in');
+                    section.style.animationDelay = delay + 'ms';
+
+                    let nerHtml = '';
+                    for (const [label, entities] of Object.entries(results.ner.groups)) {
+                        nerHtml += `<div style="margin-bottom: var(--space-2);"><strong>${label}:</strong> `;
+                        nerHtml += entities.map(e => `<span class="badge badge-gray">${escapeHtml(e.text)}</span>`).join(' ');
+                        nerHtml += '</div>';
+                    }
+                    document.getElementById('ner-content').innerHTML = nerHtml;
+                    delay += 150;
+                }
+
+                // Subjectivity
+                if (results.subjectivity && !results.subjectivity.error) {
+                    const section = document.getElementById('subjectivity-section');
+                    section.classList.remove('hidden');
+                    section.classList.add('animate-in');
+                    section.style.animationDelay = delay + 'ms';
+
+                    const s = results.subjectivity;
+                    document.getElementById('subjectivity-content').innerHTML = `
+                        <div style="display: flex; align-items: center; gap: var(--space-4);">
+                            <div style="flex: 1;">
+                                <div class="progress-bar" style="height: 10px;">
+                                    <div class="progress-fill ${s.score > 0.5 ? 'warning' : 'success'}" style="width: ${s.percent}%;"></div>
+                                </div>
+                            </div>
+                            <span class="badge ${s.score > 0.5 ? 'badge-warning' : 'badge-success'}">${s.label}</span>
+                        </div>
+                    `;
+                    delay += 150;
+                }
+
+                // Topics
+                if (results.topics && !results.topics.error && results.topics.topics.length > 0) {
+                    const section = document.getElementById('topics-section');
+                    section.classList.remove('hidden');
+                    section.classList.add('animate-in');
+                    section.style.animationDelay = delay + 'ms';
+
+                    document.getElementById('topics-content').innerHTML = `
+                        <div style="display: flex; flex-wrap: wrap; gap: var(--space-2);">
+                            ${results.topics.topics.map(t =>
+                        `<span class="badge badge-gray">${escapeHtml(t.topic)} (${t.frequency})</span>`
+                    ).join('')}
+                        </div>
+                    `;
+                    delay += 150;
+                }
+
+                // Spelling
+                if (basicResult.spelling) {
+                    const section = document.getElementById('spelling-section');
+                    section.classList.remove('hidden');
+                    section.classList.add('animate-in');
+                    section.style.animationDelay = delay + 'ms';
+
+                    const spell = basicResult.spelling;
+                    if (spell.has_corrections) {
+                        document.getElementById('spelling-content').innerHTML = `
+                            <div class="alert alert-warning" style="margin: 0;">
+                                <span class="alert-icon">✏️</span>
+                                <span>Suggested: ${escapeHtml(spell.corrected)}</span>
+                            </div>
+                        `;
+                    } else {
+                        document.getElementById('spelling-content').innerHTML = `
+                            <div class="alert alert-success" style="margin: 0;">
+                                <span class="alert-icon">✅</span>
+                                <span>No spelling issues detected!</span>
+                            </div>
+                        `;
+                    }
+                }
+
+            } catch (error) {
+                showError(outputSection, error.message);
+            } finally {
+                hideLoading(outputSection);
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block title %}QR & Codes Lab - NeuralPlayground{% endblock %}
+
+{% block content %}
+<div class="tool-page container">
+    <div class="tool-header">
+        <div class="tool-icon">📱</div>
+        <h1 class="tool-title">QR & Codes Lab</h1>
+        <p class="tool-description">
+            Create QR codes for websites, text, or contact information instantly.
+            Download or share them anywhere.
+        </p>
+    </div>
+
+    <div class="tool-content">
+        <!-- Input Section -->
+        <div class="tool-input-section" id="input-section">
+            <div class="section-label">✍️ Enter Content</div>
+
+            <form id="qr-form">
+                <div class="form-group">
+                    <label class="form-label">URL or Text</label>
+                    <input type="text" class="form-input" id="content-input" name="content"
+                        placeholder="https://example.com or any text..." maxlength="2000">
+                    <div class="form-hint">Enter a website URL, text message, or any content</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        Error Correction Level
+                        <span class="tooltip-trigger"
+                            data-tooltip="Higher levels make the QR code more resistant to damage, but also slightly larger">?</span>
+                    </label>
+                    <select class="form-select" id="error-level" name="error_correction">
+                        {% for key, info in error_correction.items() %}
+                        <option value="{{ key }}" {% if key=='M' %}selected{% endif %}>
+                            {{ info.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-hint" id="error-level-hint">
+                        Allows about 15% of the code to be damaged
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg btn-full">
+                    📱 Generate QR Code
+                </button>
+            </form>
+        </div>
+
+        <!-- Output Section -->
+        <div class="tool-output-section" id="output-section">
+            <div class="section-label">🔲 Generated QR Code</div>
+
+            <div id="output-placeholder" class="result-box text-center"
+                style="color: var(--color-gray-400); padding: var(--space-10);">
+                <div style="font-size: 3rem; margin-bottom: var(--space-3);">🔳</div>
+                <p>Your QR code will appear here</p>
+            </div>
+
+            <div id="output-results" class="hidden">
+                <div class="result-box text-center">
+                    <img id="qr-image" src="" alt="Generated QR Code" style="max-width: 300px; margin: 0 auto;">
+                    <p id="qr-content" class="form-hint mt-4" style="word-break: break-all;"></p>
+                </div>
+
+                <div class="flex gap-4 mt-6">
+                    <button type="button" class="btn btn-success btn-full" id="download-png-btn">
+                        ⬇️ Download PNG
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-full" id="copy-svg-btn">
+                        📋 Copy SVG
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('qr-form');
+        const contentInput = document.getElementById('content-input');
+        const errorLevelSelect = document.getElementById('error-level');
+        const errorLevelHint = document.getElementById('error-level-hint');
+        const outputPlaceholder = document.getElementById('output-placeholder');
+        const outputResults = document.getElementById('output-results');
+        const qrImage = document.getElementById('qr-image');
+        const qrContent = document.getElementById('qr-content');
+        const downloadPngBtn = document.getElementById('download-png-btn');
+        const copySvgBtn = document.getElementById('copy-svg-btn');
+        const outputSection = document.getElementById('output-section');
+
+        let pngDataUri = null;
+        let svgContent = null;
+
+        // Error level hints
+        const hints = {
+            'L': 'Allows about 7% of the code to be damaged',
+            'M': 'Allows about 15% of the code to be damaged',
+            'Q': 'Allows about 25% of the code to be damaged',
+            'H': 'Allows about 30% of the code to be damaged'
+        };
+
+        errorLevelSelect.addEventListener('change', function () {
+            errorLevelHint.textContent = hints[this.value] || '';
+        });
+
+        // Form submission
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const content = contentInput.value.trim();
+            if (!content) {
+                showError(outputSection, 'Please enter a URL or text for the QR code.');
+                return;
+            }
+
+            hideError(outputSection);
+            showLoading(outputSection, 'Generating QR code...');
+
+            try {
+                const data = {
+                    content: content,
+                    error_correction: errorLevelSelect.value
+                };
+
+                const result = await postJSON('/api/qr-code', data);
+
+                pngDataUri = result.png_data_uri;
+                svgContent = result.svg;
+
+                // Show results
+                outputPlaceholder.classList.add('hidden');
+                outputResults.classList.remove('hidden');
+
+                qrImage.src = pngDataUri;
+                qrContent.textContent = result.content.length > 100
+                    ? result.content.substring(0, 100) + '...'
+                    : result.content;
+
+            } catch (error) {
+                showError(outputSection, error.message);
+            } finally {
+                hideLoading(outputSection);
+            }
+        });
+
+        // Download PNG
+        downloadPngBtn.addEventListener('click', function () {
+            if (!pngDataUri) return;
+            downloadDataUri(pngDataUri, 'qr_code.png');
+        });
+
+        // Copy SVG
+        copySvgBtn.addEventListener('click', async function () {
+            if (!svgContent) return;
+
+            const success = await copyToClipboard(svgContent);
+            if (success) {
+                const originalText = copySvgBtn.innerHTML;
+                copySvgBtn.innerHTML = '✅ Copied!';
+                setTimeout(() => {
+                    copySvgBtn.innerHTML = originalText;
+                }, 2000);
+            } else {
+                showError(outputSection, 'Failed to copy to clipboard');
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+
+{% block title %}ASCII Art Lab - NeuralPlayground{% endblock %}
+
+{% block content %}
+<div class="tool-page container">
+    <div class="tool-header">
+        <div class="tool-icon">🎨</div>
+        <h1 class="tool-title">ASCII Art Lab</h1>
+        <p class="tool-description">
+            Transform images or text into creative ASCII art.
+            A fun way to see how computers represent content using characters.
+        </p>
+    </div>
+
+    <div class="tool-content">
+        <!-- Input Section -->
+        <div class="tool-input-section" id="input-section">
+            <div class="section-label">🎯 Choose Mode</div>
+
+            <!-- Mode Toggle -->
+            <div class="form-group">
+                <div class="toggle-group" id="mode-toggle">
+                    <button type="button" class="toggle-option active" data-value="text">✍️ Text to ASCII</button>
+                    <button type="button" class="toggle-option" data-value="image">🖼️ Image to ASCII</button>
+                </div>
+            </div>
+
+            <!-- Image Mode -->
+            <form id="ascii-form" class="hidden">
+                <div id="image-mode">
+                    <div class="form-group">
+                        <div class="file-upload" id="file-upload">
+                            <input type="file" class="file-upload-input" id="image-input"
+                                accept=".png,.jpg,.jpeg,.gif,.webp">
+                            <div class="file-upload-icon">📁</div>
+                            <div class="file-upload-text">
+                                <strong>Click to upload</strong> or drag and drop<br>
+                                PNG, JPG, GIF up to 5MB
+                            </div>
+                        </div>
+                        <div id="file-name" class="form-hint mt-4" style="display: none;"></div>
+                    </div>
+
+                    <div id="image-preview" class="result-box hidden mb-4">
+                        <img id="preview-img" src="" alt="Preview"
+                            style="max-height: 200px; margin: 0 auto; border-radius: var(--radius-md);">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            Output Size
+                            <span class="tooltip-trigger"
+                                data-tooltip="Larger sizes show more detail but may be harder to view">?</span>
+                        </label>
+                        <select class="form-select" id="size" name="size">
+                            {% for key, preset in size_presets.items() %}
+                            <option value="{{ key }}" {% if key=='medium' %}selected{% endif %}>{{ preset.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg btn-full" id="generate-btn" disabled>
+                        🎨 Convert to ASCII
+                    </button>
+                </div>
+            </form>
+
+            <!-- Text Mode -->
+            <form id="text-form">
+                <div id="text-mode">
+                    <div class="form-group">
+                        <label class="form-label">Enter Text</label>
+                        <input type="text" class="form-input" id="text-input" name="text"
+                            placeholder="Type your text here..." maxlength="50">
+                        <div class="form-hint">Max 50 characters</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Font Style</label>
+                        <select class="form-select" id="font-select">
+                            <option value="standard">Standard</option>
+                            <option value="banner">Banner</option>
+                            <option value="big">Big</option>
+                            <option value="block">Block</option>
+                            <option value="bubble">Bubble</option>
+                            <option value="digital">Digital</option>
+                            <option value="lean">Lean</option>
+                            <option value="mini">Mini</option>
+                            <option value="script">Script</option>
+                            <option value="shadow">Shadow</option>
+                            <option value="slant">Slant</option>
+                            <option value="small">Small</option>
+                            <option value="smslant">Small Slant</option>
+                            <option value="speed">Speed</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg btn-full" id="generate-text-btn">
+                        ✨ Generate ASCII Text
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Output Section -->
+        <div class="tool-output-section" id="output-section">
+            <div class="section-label">✨ ASCII Art Output</div>
+
+            <div id="output-placeholder" class="result-box text-center"
+                style="color: var(--color-gray-400); padding: var(--space-10);">
+                <div style="font-size: 3rem; margin-bottom: var(--space-3);">🖼️</div>
+                <p>Your ASCII art will appear here</p>
+            </div>
+
+            <div id="output-results" class="hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex gap-2">
+                        <span id="result-info" class="badge badge-primary"></span>
+                    </div>
+                    <button type="button" class="btn btn-success btn-sm" id="download-btn">
+                        ⬇️ Download TXT
+                    </button>
+                </div>
+
+                <div class="ascii-display" id="ascii-output"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const asciiForm = document.getElementById('ascii-form');
+        const textForm = document.getElementById('text-form');
+        const fileUpload = document.getElementById('file-upload');
+        const imageInput = document.getElementById('image-input');
+        const fileName = document.getElementById('file-name');
+        const imagePreview = document.getElementById('image-preview');
+        const previewImg = document.getElementById('preview-img');
+        const generateBtn = document.getElementById('generate-btn');
+        const generateTextBtn = document.getElementById('generate-text-btn');
+        const textInput = document.getElementById('text-input');
+        const fontSelect = document.getElementById('font-select');
+        const outputPlaceholder = document.getElementById('output-placeholder');
+        const outputResults = document.getElementById('output-results');
+        const asciiOutput = document.getElementById('ascii-output');
+        const downloadBtn = document.getElementById('download-btn');
+        const outputSection = document.getElementById('output-section');
+        const modeToggle = document.getElementById('mode-toggle');
+        const imageMode = document.getElementById('image-mode');
+        const textMode = document.getElementById('text-mode');
+
+        let selectedFile = null;
+        let asciiArt = null;
+        let currentMode = 'text';
+
+        // Mode toggle
+        modeToggle.querySelectorAll('.toggle-option').forEach(option => {
+            option.addEventListener('click', function () {
+                modeToggle.querySelectorAll('.toggle-option').forEach(o => o.classList.remove('active'));
+                this.classList.add('active');
+                currentMode = this.dataset.value;
+
+                if (currentMode === 'image') {
+                    asciiForm.classList.remove('hidden');
+                    textForm.classList.add('hidden');
+                } else {
+                    asciiForm.classList.add('hidden');
+                    textForm.classList.remove('hidden');
+                }
+
+                // Reset output
+                outputPlaceholder.classList.remove('hidden');
+                outputResults.classList.add('hidden');
+            });
+        });
+
+        // File upload handling
+        function handleFileSelect(file) {
+            try {
+                validateFileType(file, ['png', 'jpg', 'jpeg', 'gif', 'webp']);
+                validateFileSize(file, 5);
+
+                selectedFile = file;
+                fileName.textContent = `Selected: ${file.name}`;
+                fileName.style.display = 'block';
+                generateBtn.disabled = false;
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    previewImg.src = e.target.result;
+                    imagePreview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+
+            } catch (error) {
+                showError(document.getElementById('input-section'), error.message);
+            }
+        }
+
+        setupFileUpload(fileUpload, handleFileSelect);
+
+        // Image form submission
+        asciiForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            if (!selectedFile) {
+                showError(outputSection, 'Please select an image first.');
+                return;
+            }
+
+            hideError(outputSection);
+            showLoading(outputSection, 'Converting to ASCII...');
+
+            try {
+                const formData = new FormData();
+                formData.append('image', selectedFile);
+                formData.append('size', document.getElementById('size').value);
+
+                const result = await postFormData('/api/ascii-art', formData);
+
+                asciiArt = result.ascii_art;
+                outputPlaceholder.classList.add('hidden');
+                outputResults.classList.remove('hidden');
+
+                document.getElementById('result-info').textContent = `${result.width} × ${result.lines} chars`;
+                asciiOutput.textContent = asciiArt;
+
+            } catch (error) {
+                showError(outputSection, error.message);
+            } finally {
+                hideLoading(outputSection);
+            }
+        });
+
+        // Text form submission
+        textForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const text = textInput.value.trim();
+            if (!text) {
+                showError(outputSection, 'Please enter some text.');
+                return;
+            }
+
+            hideError(outputSection);
+            showLoading(outputSection, 'Generating ASCII text...');
+
+            try {
+                const result = await postJSON('/api/ascii-text', {
+                    text: text,
+                    font: fontSelect.value
+                });
+
+                asciiArt = result.ascii_art;
+                outputPlaceholder.classList.add('hidden');
+                outputResults.classList.remove('hidden');
+
+                document.getElementById('result-info').textContent = `Font: ${result.font}`;
+                asciiOutput.textContent = asciiArt;
+
+            } catch (error) {
+                showError(outputSection, error.message);
+            } finally {
+                hideLoading(outputSection);
+            }
+        });
+
+        // Download ASCII
+        downloadBtn.addEventListener('click', function () {
+            if (!asciiArt) return;
+            downloadText(asciiArt, 'ascii_art.txt');
+        });
+    });
+</script>
+{% endblock %}
